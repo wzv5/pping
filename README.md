@@ -46,7 +46,7 @@ Ping 223.5.5.5 (223.5.5.5):
 16:58:31 [3] proto = TLS 1.3, connection = 19 ms, handshake = 25 ms, time = 44 ms
 16:58:32 [4] proto = TLS 1.3, connection = 21 ms, handshake = 26 ms, time = 47 ms
 
-        sent = 4, ok = 4, failed = 0（0%）
+        sent = 4, ok = 4, failed = 0 (0%)
         min = 42 ms, max = 47 ms, avg = 43 ms
 ```
 
@@ -60,6 +60,6 @@ Ping https://www.google.com:
 16:59:38 [3] proto = HTTP/2.0, status = 200, length = 211721, time = 1159 ms
 16:59:40 [4] proto = HTTP/2.0, status = 200, length = 211717, time = 1142 ms
 
-        sent = 4, ok = 4, failed = 0（0%）
+        sent = 4, ok = 4, failed = 0 (0%)
         min = 1105 ms, max = 1246 ms, avg = 1163 ms
 ```

@@ -91,7 +91,7 @@ func PrintSummary(r []pping.IPingResult) {
 		a += t
 	}
 	fmt.Println()
-	fmt.Printf("\tsent = %d, ok = %d, failed = %d（%d%%）\n", len(r), ok, err, 100*err/len(r))
+	fmt.Printf("\tsent = %d, ok = %d, failed = %d (%d%%)\n", len(r), ok, err, 100*err/len(r))
 	if ok > 0 {
 		avg = a / ok
 		fmt.Printf("\tmin = %d ms, max = %d ms, avg = %d ms\n", min, max, avg)
