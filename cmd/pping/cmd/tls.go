@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 	"time"
@@ -11,11 +12,11 @@ import (
 )
 
 type tlsFlags struct {
-	tls13    bool
 	conntime time.Duration
 	handtime time.Duration
 	port     uint16
 	insecure bool
+	tlsver   uint16
 }
 
 var tlsflag tlsFlags
@@ -29,7 +30,7 @@ func AddTlsCommand() {
 		Run:   runtls,
 	}
 
-	cmd.Flags().BoolVarP(&tlsflag.tls13, "tls13", "s", false, "force use TLS 1.3")
+	cmd.Flags().Uint16VarP(&tlsflag.tlsver, "tlsversion", "s", 0, "TLS version, one of 13, 12, 11, 10")
 	cmd.Flags().DurationVarP(&tlsflag.conntime, "connection", "w", time.Second*3, "connection timeout")
 	cmd.Flags().DurationVarP(&tlsflag.handtime, "handshake", "x", time.Second*10, "handshake timeout")
 	cmd.Flags().Uint16VarP(&tlsflag.port, "port", "p", 443, "port")
@@ -50,7 +51,21 @@ func runtls(cmd *cobra.Command, args []string) {
 		return
 	}
 	ip = addr[0]
+	switch tlsflag.tlsver {
+	case 0:
+	case 13:
+		tlsflag.tlsver = tls.VersionTLS13
+	case 12:
+		tlsflag.tlsver = tls.VersionTLS12
+	case 11:
+		tlsflag.tlsver = tls.VersionTLS11
+	case 10:
+		tlsflag.tlsver = tls.VersionTLS10
+	default:
+		fmt.Println("unknown TLS version")
+		return
+	}
 	fmt.Printf("Ping %s (%s):\n", host, ip)
-	ping := pping.NewTlsPing(host, net.ParseIP(ip), tlsflag.port, tlsflag.conntime, tlsflag.handtime, tlsflag.tls13, tlsflag.insecure)
+	ping := pping.NewTlsPing(host, net.ParseIP(ip), tlsflag.port, tlsflag.conntime, tlsflag.handtime, tlsflag.tlsver, tlsflag.insecure)
 	generalPing(ping)
 }

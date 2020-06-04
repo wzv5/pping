@@ -37,7 +37,7 @@ type TlsPing struct {
 	Port              uint16
 	ConnectionTimeout time.Duration
 	HandshakeTimeout  time.Duration
-	ForceTls13        bool
+	TlsVersion        uint16
 	Insecure          bool
 }
 
@@ -53,13 +53,10 @@ func (this *TlsPing) Ping() IPingResult {
 	}
 	defer conn.Close()
 	t1 := time.Now()
-	var tlsver uint16 = tls.VersionTLS12
-	if this.ForceTls13 {
-		tlsver = tls.VersionTLS13
-	}
 	config := &tls.Config{
 		ServerName:         this.Host,
-		MinVersion:         tlsver,
+		MinVersion:         this.TlsVersion,
+		MaxVersion:         this.TlsVersion,
 		InsecureSkipVerify: this.Insecure,
 	}
 	client := tls.Client(conn, config)
@@ -73,8 +70,8 @@ func (this *TlsPing) Ping() IPingResult {
 	return &TlsPingResult{int(t1.Sub(t0).Milliseconds()), int(t2.Sub(t1).Milliseconds()), client.ConnectionState().Version, nil}
 }
 
-func NewTlsPing(host string, ip net.IP, port uint16, ct, ht time.Duration, tls13, insecure bool) *TlsPing {
-	return &TlsPing{host, ip, port, ct, ht, tls13, insecure}
+func NewTlsPing(host string, ip net.IP, port uint16, ct, ht time.Duration, tlsver uint16, insecure bool) *TlsPing {
+	return &TlsPing{host, ip, port, ct, ht, tlsver, insecure}
 }
 
 func (this *TlsPing) errorResult(err error) *TlsPingResult {
