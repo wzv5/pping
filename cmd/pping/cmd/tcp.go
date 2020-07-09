@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"net"
 	"strconv"
 	"time"
 
@@ -18,7 +17,7 @@ type tcpFlags struct {
 
 var tcpflag tcpFlags
 
-func AddTcpCommand() {
+func addTcpCommand() {
 	var cmd = &cobra.Command{
 		Use:   "tcp <host> <port>",
 		Short: "tcp ping",
@@ -32,19 +31,19 @@ func AddTcpCommand() {
 }
 
 func runtcp(cmd *cobra.Command, args []string) {
-	ip := args[0]
-	addr, err := net.LookupHost(ip)
+	host := args[0]
+	ip, err := pping.LookupFunc(host)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	ip = addr[0]
 	port, err := strconv.ParseUint(args[1], 10, 16)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	fmt.Printf("Ping %s (%d):\n", ip, port)
-	ping := pping.NewTcpPing(net.ParseIP(ip), uint16(port), tcpflag.timeout)
-	generalPing(ping)
+	fmt.Printf("Ping %s (%d):\n", host, port)
+	ping := pping.NewTcpPing(host, uint16(port), tcpflag.timeout)
+	ping.IP = ip
+	RunPing(ping)
 }

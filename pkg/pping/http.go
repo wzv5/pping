@@ -18,6 +18,7 @@ type HttpPingResult struct {
 	Status int
 	Length int
 	Err    error
+	IP     net.IP
 }
 
 func (this *HttpPingResult) Result() int {
@@ -32,51 +33,65 @@ func (this *HttpPingResult) String() string {
 	if this.Err != nil {
 		return fmt.Sprintf("%s", this.Err)
 	} else {
-		return fmt.Sprintf("proto = %s, status = %d, length = %d, time = %d ms", this.Proto, this.Status, this.Length, this.Time)
+		return fmt.Sprintf("%s: proto=%s, status=%d, length=%d, time=%d ms", this.IP.String(), this.Proto, this.Status, this.Length, this.Time)
 	}
 }
 
 type HttpPing struct {
-	Method             string
-	URL                string
+	Method  string
+	URL     string
+	Timeout time.Duration
+
+	// 以下参数全部为可选
 	DisableHttp2       bool
 	DisableCompression bool
 	Insecure           bool
-	Timeout            time.Duration
-
-	// 以下参数全部为可选
-	Referrer  string
-	UserAgent string
-	IP        net.IP
+	Referrer           string
+	UserAgent          string
+	IP                 net.IP
 }
 
 func (this *HttpPing) Ping() IPingResult {
-	t0 := time.Now()
+	return this.PingContext(context.Background())
+}
 
+func (this *HttpPing) PingContext(ctx context.Context) IPingResult {
 	u, err := url.Parse(this.URL)
 	if err != nil {
-		return this.ErrResult(err)
+		return this.errorResult(err)
 	}
 	host := u.Hostname()
+	var ip net.IP
+	if this.IP != nil {
+		ip = make(net.IP, len(this.IP))
+		copy(ip, this.IP)
+	} else {
+		var err error
+		ip, err = LookupFunc(host)
+		if err != nil {
+			return this.errorResult(err)
+		}
+	}
 
 	dialer := &net.Dialer{
 		Timeout:   this.Timeout,
 		KeepAlive: -1,
 	}
 
-	var dialfunc = dialer.DialContext
-	if this.IP != nil {
-		dialfunc = func(ctx context.Context, network, address string) (net.Conn, error) {
-			h, p, err := net.SplitHostPort(address)
+	dialfunc := func(ctx context.Context, network, address string) (net.Conn, error) {
+		h, p, err := net.SplitHostPort(address)
+		if err != nil {
+			return nil, err
+		}
+		if ip == nil || !strings.EqualFold(h, host) {
+			var err error
+			ip, err = LookupFunc(h)
 			if err != nil {
 				return nil, err
 			}
-			addr := address
-			if strings.EqualFold(h, host) {
-				addr = net.JoinHostPort(this.IP.String(), p)
-			}
-			return dialer.DialContext(ctx, network, addr)
 		}
+		addr := net.JoinHostPort(ip.String(), p)
+		return dialer.DialContext(ctx, network, addr)
 	}
 
 	trans := &http.Transport{
@@ -94,12 +109,12 @@ func (this *HttpPing) Ping() IPingResult {
 		},
 	}
 
-	req, err := http.NewRequest(this.Method, this.URL, nil)
+	req, err := http.NewRequestWithContext(ctx, this.Method, this.URL, nil)
 	if err != nil {
-		return this.ErrResult(err)
+		return this.errorResult(err)
 	}
 	if this.UserAgent == "" {
-		this.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.61 Safari/537.36"
+		this.UserAgent = "httping"
 	}
 	req.Header.Set("User-Agent", this.UserAgent)
 	if this.Referrer != "" {
@@ -111,24 +126,34 @@ func (this *HttpPing) Ping() IPingResult {
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
+	t0 := time.Now()
 	resp, err := client.Do(req)
 	if err != nil {
-		return this.ErrResult(err)
+		return this.errorResult(err)
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return this.ErrResult(err)
+		return this.errorResult(err)
 	}
-	return &HttpPingResult{int(time.Now().Sub(t0).Milliseconds()), resp.Proto, resp.StatusCode, len(body), nil}
+	return &HttpPingResult{int(time.Now().Sub(t0).Milliseconds()), resp.Proto, resp.StatusCode, len(body), nil, ip}
 }
 
-func (this *HttpPing) ErrResult(err error) *HttpPingResult {
+func (this *HttpPing) errorResult(err error) *HttpPingResult {
 	r := &HttpPingResult{}
 	r.Err = err
 	return r
 }
 
-func NewHttpPing(method, url string, disablehttp2, disablecompression, insecure bool, timeout time.Duration, refer, ua string, ip net.IP) *HttpPing {
-	return &HttpPing{method, url, disablehttp2, disablecompression, insecure, timeout, refer, ua, ip}
+func NewHttpPing(method, url string, timeout time.Duration) *HttpPing {
+	return &HttpPing{
+		Method:  method,
+		URL:     url,
+		Timeout: timeout,
+	}
 }
+
+var (
+	_ IPing       = (*HttpPing)(nil)
+	_ IPingResult = (*HttpPingResult)(nil)
+)

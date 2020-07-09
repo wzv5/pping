@@ -23,7 +23,7 @@ type httpFlags struct {
 
 var httpflag httpFlags
 
-func AddHttpCommand() {
+func addHttpCommand() {
 	var cmd = &cobra.Command{
 		Use:   "http <url> [ip]",
 		Short: "http ping",
@@ -47,11 +47,21 @@ func runhttp(cmd *cobra.Command, args []string) {
 	if !strings.HasPrefix(url, "http") {
 		url = "http://" + url
 	}
-	var ip net.IP = nil
+	var ip net.IP
 	if len(args) == 2 {
 		ip = net.ParseIP(args[1])
+		if ip == nil {
+			fmt.Println("parse IP failed")
+			return
+		}
 	}
 	fmt.Printf("Ping %s:\n", url)
-	ping := pping.NewHttpPing(httpflag.method, url, httpflag.disablehttp2, httpflag.disablecompression, httpflag.insecure, httpflag.timeout, httpflag.refer, httpflag.ua, ip)
-	generalPing(ping)
+	ping := pping.NewHttpPing(httpflag.method, url, httpflag.timeout)
+	ping.DisableHttp2 = httpflag.disablehttp2
+	ping.DisableCompression = httpflag.disablecompression
+	ping.Insecure = httpflag.insecure
+	ping.Referrer = httpflag.refer
+	ping.UserAgent = httpflag.ua
+	ping.IP = ip
+	RunPing(ping)
 }

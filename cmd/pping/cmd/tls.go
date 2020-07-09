@@ -21,7 +21,7 @@ type tlsFlags struct {
 
 var tlsflag tlsFlags
 
-func AddTlsCommand() {
+func addTlsCommand() {
 	var cmd = &cobra.Command{
 		Use:   "tls <host> [ip]",
 		Short: "tls ping",
@@ -41,16 +41,15 @@ func AddTlsCommand() {
 
 func runtls(cmd *cobra.Command, args []string) {
 	host := args[0]
-	ip := host
+	var ip net.IP
 	if len(args) == 2 {
-		ip = args[1]
+		ip = net.ParseIP(args[1])
+		if ip == nil {
+			fmt.Println("parse IP failed")
+			return
+		}
 	}
-	addr, err := net.LookupHost(ip)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	ip = addr[0]
+
 	switch tlsflag.tlsver {
 	case 0:
 	case 13:
@@ -65,7 +64,8 @@ func runtls(cmd *cobra.Command, args []string) {
 		fmt.Println("unknown TLS version")
 		return
 	}
-	fmt.Printf("Ping %s (%s):\n", host, ip)
-	ping := pping.NewTlsPing(host, net.ParseIP(ip), tlsflag.port, tlsflag.conntime, tlsflag.handtime, tlsflag.tlsver, tlsflag.insecure)
-	generalPing(ping)
+	fmt.Printf("Ping %s (%d):\n", host, tlsflag.port)
+	ping := pping.NewTlsPing(host, tlsflag.port, tlsflag.conntime, tlsflag.handtime)
+	ping.IP = ip
+	RunPing(ping)
 }

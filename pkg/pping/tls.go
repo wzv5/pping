@@ -1,6 +1,7 @@
 package pping
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
@@ -13,6 +14,7 @@ type TlsPingResult struct {
 	HandshakeTime  int
 	TLSVersion     uint16
 	Err            error
+	IP             net.IP
 }
 
 func (this *TlsPingResult) Result() int {
@@ -27,27 +29,45 @@ func (this *TlsPingResult) String() string {
 	if this.Err != nil {
 		return fmt.Sprintf("%s", this.Err)
 	} else {
-		return fmt.Sprintf("proto = %s, connection = %d ms, handshake = %d ms, time = %d ms", TlsVersionToString(this.TLSVersion), this.ConnectionTime, this.HandshakeTime, this.Result())
+		return fmt.Sprintf("%s: proto=%s, connection=%d ms, handshake=%d ms, time=%d ms", this.IP.String(), TlsVersionToString(this.TLSVersion), this.ConnectionTime, this.HandshakeTime, this.Result())
 	}
 }
 
 type TlsPing struct {
 	Host              string
-	IP                net.IP
 	Port              uint16
 	ConnectionTimeout time.Duration
 	HandshakeTimeout  time.Duration
-	TlsVersion        uint16
-	Insecure          bool
+
+	// 以下为可选参数
+	TlsVersion uint16
+	Insecure   bool
+	IP         net.IP
 }
 
 func (this *TlsPing) Ping() IPingResult {
+	return this.PingContext(context.Background())
+}
+
+func (this *TlsPing) PingContext(ctx context.Context) IPingResult {
+	var ip net.IP
+	if this.IP != nil {
+		ip = make(net.IP, len(this.IP))
+		copy(ip, this.IP)
+	} else {
+		var err error
+		ip, err = LookupFunc(this.Host)
+		if err != nil {
+			return this.errorResult(err)
+		}
+	}
+
 	dialer := &net.Dialer{
 		Timeout:   this.ConnectionTimeout,
 		KeepAlive: -1,
 	}
 	t0 := time.Now()
-	conn, err := dialer.Dial("tcp", net.JoinHostPort(this.IP.String(), strconv.FormatUint(uint64(this.Port), 10)))
+	conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(ip.String(), strconv.FormatUint(uint64(this.Port), 10)))
 	if err != nil {
 		return this.errorResult(err)
 	}
@@ -67,11 +87,16 @@ func (this *TlsPing) Ping() IPingResult {
 	}
 	defer client.Close()
 	t2 := time.Now()
-	return &TlsPingResult{int(t1.Sub(t0).Milliseconds()), int(t2.Sub(t1).Milliseconds()), client.ConnectionState().Version, nil}
+	return &TlsPingResult{int(t1.Sub(t0).Milliseconds()), int(t2.Sub(t1).Milliseconds()), client.ConnectionState().Version, nil, ip}
 }
 
-func NewTlsPing(host string, ip net.IP, port uint16, ct, ht time.Duration, tlsver uint16, insecure bool) *TlsPing {
-	return &TlsPing{host, ip, port, ct, ht, tlsver, insecure}
+func NewTlsPing(host string, port uint16, ct, ht time.Duration) *TlsPing {
+	return &TlsPing{
+		Host:              host,
+		Port:              port,
+		ConnectionTimeout: ct,
+		HandshakeTimeout:  ht,
+	}
 }
 
 func (this *TlsPing) errorResult(err error) *TlsPingResult {
@@ -79,3 +104,8 @@ func (this *TlsPing) errorResult(err error) *TlsPingResult {
 	r.Err = err
 	return r
 }
+
+var (
+	_ IPing       = (*TlsPing)(nil)
+	_ IPingResult = (*TlsPingResult)(nil)
+)

@@ -1,6 +1,7 @@
 package pping
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 )
@@ -13,6 +14,7 @@ type IPingResult interface {
 
 type IPing interface {
 	Ping() IPingResult
+	PingContext(context.Context) IPingResult
 }
 
 func TlsVersionToString(ver uint16) string {
