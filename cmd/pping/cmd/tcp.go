@@ -32,11 +32,6 @@ func addTcpCommand() {
 
 func runtcp(cmd *cobra.Command, args []string) {
 	host := args[0]
-	ip, err := pping.LookupFunc(host)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
 	port, err := strconv.ParseUint(args[1], 10, 16)
 	if err != nil {
 		fmt.Println(err)
@@ -44,6 +39,5 @@ func runtcp(cmd *cobra.Command, args []string) {
 	}
 	fmt.Printf("Ping %s (%d):\n", host, port)
 	ping := pping.NewTcpPing(host, uint16(port), tcpflag.timeout)
-	ping.IP = ip
 	RunPing(ping)
 }

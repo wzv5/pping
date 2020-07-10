@@ -35,8 +35,7 @@ type TcpPing struct {
 	Port    uint16
 	Timeout time.Duration
 
-	// 以下为可选参数
-	IP net.IP
+	ip net.IP
 }
 
 func (this *TcpPing) Ping() IPingResult {
@@ -45,9 +44,9 @@ func (this *TcpPing) Ping() IPingResult {
 
 func (this *TcpPing) PingContext(ctx context.Context) IPingResult {
 	var ip net.IP
-	if this.IP != nil {
-		ip = make(net.IP, len(this.IP))
-		copy(ip, this.IP)
+	if this.ip != nil {
+		ip = make(net.IP, len(this.ip))
+		copy(ip, this.ip)
 	} else {
 		var err error
 		ip, err = LookupFunc(this.Host)
@@ -73,6 +72,7 @@ func NewTcpPing(host string, port uint16, timeout time.Duration) *TcpPing {
 		Host:    host,
 		Port:    port,
 		Timeout: timeout,
+		ip:      net.ParseIP(host),
 	}
 }
 
