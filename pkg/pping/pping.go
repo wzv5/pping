@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"net"
 )
 
 type IPingResult interface {
@@ -32,4 +33,12 @@ func TlsVersionToString(ver uint16) string {
 	default:
 		return "unknown"
 	}
+}
+
+func IsIPv4(ip net.IP) bool {
+	return len(ip.To4()) == net.IPv4len
+}
+
+func IsIPv6(ip net.IP) bool {
+	return len(ip) == net.IPv6len && !IsIPv4(ip)
 }

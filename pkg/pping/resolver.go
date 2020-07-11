@@ -10,15 +10,8 @@ func lookupIP(host string, ipv4, ipv6 bool) (net.IP, error) {
 		return nil, err
 	}
 	for _, i := range ip {
-		p4 := i.To4()
-		if p4 != nil {
-			if ipv4 {
-				return i, nil
-			}
-		} else {
-			if ipv6 {
-				return i, nil
-			}
+		if (ipv4 && IsIPv4(i)) || (ipv6 && IsIPv6(i)) {
+			return i, nil
 		}
 	}
 	return nil, &net.DNSError{
