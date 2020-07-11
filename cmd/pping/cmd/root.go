@@ -91,6 +91,13 @@ func RunPing(ping pping.IPing) {
 			goto end
 		case <-time.After(globalflag.i):
 		}
+
+		// 再次检查是否停止，上面的检查可能由于延迟为0而始终无法停止
+		select {
+		case <-c:
+			goto end
+		default:
+		}
 	}
 
 end:
