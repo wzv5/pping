@@ -67,7 +67,7 @@ func RunPing(ping pping.IPing) {
 	// 预热，由于某些资源需要初始化，首次运行会耗时较长
 	ping.Ping()
 
-	resultlist := make([]pping.IPingResult, 0)
+	s := statistics{}
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -76,7 +76,7 @@ func RunPing(ping pping.IPing) {
 		select {
 		case result := <-PingToChan(ctx, ping):
 			PrintResult(i, result)
-			resultlist = append(resultlist, result)
+			s.append(result)
 		case <-c:
 			goto end
 		}
@@ -95,38 +95,58 @@ func RunPing(ping pping.IPing) {
 
 end:
 	cancel()
-	PrintStatistics(resultlist)
+	s.print()
+}
+
+type statistics struct {
+	max, min, total  int
+	sent, ok, failed int
+}
+
+func (s *statistics) append(result pping.IPingResult) {
+	if result == nil {
+		return
+	}
+	s.sent++
+	if result.Error() != nil {
+		s.failed++
+		return
+	}
+	t := result.Result()
+	if s.ok == 0 {
+		s.min = t
+		s.max = t
+	} else {
+		if t < s.min {
+			s.min = t
+		} else if t > s.max {
+			s.max = t
+		}
+	}
+	s.total += t
+	s.ok++
+}
+
+func (s *statistics) clear() {
+	s.max = 0
+	s.min = 0
+	s.total = 0
+	s.sent = 0
+	s.ok = 0
+	s.failed = 0
+}
+
+func (s *statistics) print() {
+	if s.sent == 0 {
+		return
+	}
+	fmt.Println()
+	fmt.Printf("\tsent = %d, ok = %d, failed = %d (%d%%)\n", s.sent, s.ok, s.failed, 100*s.failed/s.sent)
+	if s.ok > 0 {
+		fmt.Printf("\tmin = %d ms, max = %d ms, avg = %d ms\n", s.min, s.max, s.total/s.ok)
+	}
 }
 
 func PrintResult(i int, r pping.IPingResult) {
 	log.Printf("[%d] %v\n", i, r)
-}
-
-func PrintStatistics(r []pping.IPingResult) {
-	if len(r) == 0 {
-		return
-	}
-	var max, min, avg, a, ok, err int
-	min = 9999
-	for _, i := range r {
-		if i.Error() != nil {
-			err += 1
-			continue
-		}
-		ok += 1
-		t := i.Result()
-		if t > max {
-			max = t
-		}
-		if t < min {
-			min = t
-		}
-		a += t
-	}
-	fmt.Println()
-	fmt.Printf("\tsent = %d, ok = %d, failed = %d (%d%%)\n", len(r), ok, err, 100*err/len(r))
-	if ok > 0 {
-		avg = a / ok
-		fmt.Printf("\tmin = %d ms, max = %d ms, avg = %d ms\n", min, max, avg)
-	}
 }
