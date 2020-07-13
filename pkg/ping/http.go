@@ -94,19 +94,14 @@ func (this *HttpPing) PingContext(ctx context.Context) IPingResult {
 		return dialer.DialContext(ctx, network, addr)
 	}
 
-	trans := &http.Transport{
-		DialContext:           dialfunc,
-		Proxy:                 http.ProxyFromEnvironment,
-		DisableKeepAlives:     true,
-		DisableCompression:    this.DisableCompression,
-		ForceAttemptHTTP2:     !this.DisableHttp2,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: this.Insecure,
-		},
+	trans := http.DefaultTransport.(*http.Transport).Clone()
+	trans.DialContext = dialfunc
+	trans.DisableKeepAlives = true
+	trans.MaxIdleConnsPerHost = -1
+	trans.DisableCompression = this.DisableCompression
+	trans.ForceAttemptHTTP2 = !this.DisableHttp2
+	trans.TLSClientConfig = &tls.Config{
+		InsecureSkipVerify: this.Insecure,
 	}
 
 	req, err := http.NewRequestWithContext(ctx, this.Method, this.URL, nil)
