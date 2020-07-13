@@ -31,11 +31,20 @@ func (this *TcpPingResult) String() string {
 }
 
 type TcpPing struct {
-	Host    string
+	host    string
 	Port    uint16
 	Timeout time.Duration
 
 	ip net.IP
+}
+
+func (this *TcpPing) SetHost(host string) {
+	this.host = host
+	this.ip = net.ParseIP(host)
+}
+
+func (this *TcpPing) Host() string {
+	return this.host
 }
 
 func (this *TcpPing) Ping() IPingResult {
@@ -49,7 +58,7 @@ func (this *TcpPing) PingContext(ctx context.Context) IPingResult {
 		copy(ip, this.ip)
 	} else {
 		var err error
-		ip, err = LookupFunc(this.Host)
+		ip, err = LookupFunc(this.host)
 		if err != nil {
 			return &TcpPingResult{0, err, nil}
 		}
@@ -69,7 +78,7 @@ func (this *TcpPing) PingContext(ctx context.Context) IPingResult {
 
 func NewTcpPing(host string, port uint16, timeout time.Duration) *TcpPing {
 	return &TcpPing{
-		Host:    host,
+		host:    host,
 		Port:    port,
 		Timeout: timeout,
 		ip:      net.ParseIP(host),
