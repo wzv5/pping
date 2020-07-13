@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/wzv5/pping/pkg/pping"
+	"github.com/wzv5/pping/pkg/ping"
 
 	"github.com/spf13/cobra"
 )
@@ -38,11 +38,11 @@ func init() {
 
 	rootCmd.PersistentPreRun = func(*cobra.Command, []string) {
 		if globalflag.ipv4 && !globalflag.ipv6 {
-			pping.LookupFunc = pping.LookupIPv4
+			ping.LookupFunc = ping.LookupIPv4
 		} else if !globalflag.ipv4 && globalflag.ipv6 {
-			pping.LookupFunc = pping.LookupIPv6
+			ping.LookupFunc = ping.LookupIPv6
 		} else {
-			pping.LookupFunc = pping.LookupIP
+			ping.LookupFunc = ping.LookupIP
 		}
 	}
 
@@ -55,17 +55,17 @@ func Execute() error {
 	return rootCmd.Execute()
 }
 
-func PingToChan(ctx context.Context, ping pping.IPing) <-chan pping.IPingResult {
-	c := make(chan pping.IPingResult)
+func PingToChan(ctx context.Context, p ping.IPing) <-chan ping.IPingResult {
+	c := make(chan ping.IPingResult)
 	go func() {
-		c <- ping.PingContext(ctx)
+		c <- p.PingContext(ctx)
 	}()
 	return c
 }
 
-func RunPing(ping pping.IPing) {
+func RunPing(p ping.IPing) {
 	// 预热，由于某些资源需要初始化，首次运行会耗时较长
-	ping.Ping()
+	p.Ping()
 
 	s := statistics{}
 	c := make(chan os.Signal, 1)
@@ -74,7 +74,7 @@ func RunPing(ping pping.IPing) {
 
 	for i := 1; i <= globalflag.n || globalflag.t; i++ {
 		select {
-		case result := <-PingToChan(ctx, ping):
+		case result := <-PingToChan(ctx, p):
 			PrintResult(i, result)
 			s.append(result)
 		case <-c:
@@ -110,7 +110,7 @@ type statistics struct {
 	sent, ok, failed int
 }
 
-func (s *statistics) append(result pping.IPingResult) {
+func (s *statistics) append(result ping.IPingResult) {
 	if result == nil {
 		return
 	}
@@ -154,6 +154,6 @@ func (s *statistics) print() {
 	}
 }
 
-func PrintResult(i int, r pping.IPingResult) {
+func PrintResult(i int, r ping.IPingResult) {
 	log.Printf("[%d] %v\n", i, r)
 }

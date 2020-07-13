@@ -6,7 +6,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/wzv5/pping/pkg/pping"
+	"github.com/wzv5/pping/pkg/ping"
 
 	"github.com/spf13/cobra"
 )
@@ -65,7 +65,7 @@ func runtls(cmd *cobra.Command, args []string) {
 		return
 	}
 	fmt.Printf("Ping %s (%d):\n", host, tlsflag.port)
-	ping := pping.NewTlsPing(host, tlsflag.port, tlsflag.conntime, tlsflag.handtime)
-	ping.IP = ip
-	RunPing(ping)
+	p := ping.NewTlsPing(host, tlsflag.port, tlsflag.conntime, tlsflag.handtime)
+	p.IP = ip
+	RunPing(p)
 }

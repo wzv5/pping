@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/wzv5/pping/pkg/pping"
+	"github.com/wzv5/pping/pkg/ping"
 
 	"github.com/spf13/cobra"
 )
@@ -38,6 +38,6 @@ func runtcp(cmd *cobra.Command, args []string) {
 		return
 	}
 	fmt.Printf("Ping %s (%d):\n", host, port)
-	ping := pping.NewTcpPing(host, uint16(port), tcpflag.timeout)
-	RunPing(ping)
+	p := ping.NewTcpPing(host, uint16(port), tcpflag.timeout)
+	RunPing(p)
 }

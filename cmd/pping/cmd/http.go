@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wzv5/pping/pkg/pping"
+	"github.com/wzv5/pping/pkg/ping"
 
 	"github.com/spf13/cobra"
 )
@@ -56,12 +56,12 @@ func runhttp(cmd *cobra.Command, args []string) {
 		}
 	}
 	fmt.Printf("Ping %s:\n", url)
-	ping := pping.NewHttpPing(httpflag.method, url, httpflag.timeout)
-	ping.DisableHttp2 = httpflag.disablehttp2
-	ping.DisableCompression = httpflag.disablecompression
-	ping.Insecure = httpflag.insecure
-	ping.Referrer = httpflag.refer
-	ping.UserAgent = httpflag.ua
-	ping.IP = ip
-	RunPing(ping)
+	p := ping.NewHttpPing(httpflag.method, url, httpflag.timeout)
+	p.DisableHttp2 = httpflag.disablehttp2
+	p.DisableCompression = httpflag.disablecompression
+	p.Insecure = httpflag.insecure
+	p.Referrer = httpflag.refer
+	p.UserAgent = httpflag.ua
+	p.IP = ip
+	RunPing(p)
 }

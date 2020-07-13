@@ -1,4 +1,4 @@
-package pping
+package ping
 
 import (
 	"net"
