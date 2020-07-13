@@ -61,11 +61,8 @@ func (this *HttpPing) PingContext(ctx context.Context) IPingResult {
 		return this.errorResult(err)
 	}
 	host := u.Hostname()
-	var ip net.IP
-	if this.IP != nil {
-		ip = make(net.IP, len(this.IP))
-		copy(ip, this.IP)
-	} else {
+	ip := cloneIP(this.IP)
+	if ip == nil {
 		var err error
 		ip, err = LookupFunc(host)
 		if err != nil {

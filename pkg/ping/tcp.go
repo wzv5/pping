@@ -52,11 +52,8 @@ func (this *TcpPing) Ping() IPingResult {
 }
 
 func (this *TcpPing) PingContext(ctx context.Context) IPingResult {
-	var ip net.IP
-	if this.ip != nil {
-		ip = make(net.IP, len(this.ip))
-		copy(ip, this.ip)
-	} else {
+	ip := cloneIP(this.ip)
+	if ip == nil {
 		var err error
 		ip, err = LookupFunc(this.host)
 		if err != nil {

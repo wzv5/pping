@@ -18,7 +18,7 @@ type IPing interface {
 	PingContext(context.Context) IPingResult
 }
 
-func TlsVersionToString(ver uint16) string {
+func tlsVersionToString(ver uint16) string {
 	switch ver {
 	case tls.VersionSSL30:
 		return "SSL 3.0"
@@ -35,10 +35,19 @@ func TlsVersionToString(ver uint16) string {
 	}
 }
 
-func IsIPv4(ip net.IP) bool {
+func isIPv4(ip net.IP) bool {
 	return len(ip.To4()) == net.IPv4len
 }
 
-func IsIPv6(ip net.IP) bool {
-	return len(ip) == net.IPv6len && !IsIPv4(ip)
+func isIPv6(ip net.IP) bool {
+	return len(ip) == net.IPv6len && !isIPv4(ip)
+}
+
+func cloneIP(ip net.IP) net.IP {
+	var ip2 net.IP
+	if ip != nil {
+		ip2 = make(net.IP, len(ip))
+		copy(ip2, ip)
+	}
+	return ip2
 }

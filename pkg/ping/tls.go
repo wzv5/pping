@@ -29,7 +29,7 @@ func (this *TlsPingResult) String() string {
 	if this.Err != nil {
 		return fmt.Sprintf("%s", this.Err)
 	} else {
-		return fmt.Sprintf("%s: proto=%s, connection=%d ms, handshake=%d ms, time=%d ms", this.IP.String(), TlsVersionToString(this.TLSVersion), this.ConnectionTime, this.HandshakeTime, this.Result())
+		return fmt.Sprintf("%s: proto=%s, connection=%d ms, handshake=%d ms, time=%d ms", this.IP.String(), tlsVersionToString(this.TLSVersion), this.ConnectionTime, this.HandshakeTime, this.Result())
 	}
 }
 
@@ -50,11 +50,8 @@ func (this *TlsPing) Ping() IPingResult {
 }
 
 func (this *TlsPing) PingContext(ctx context.Context) IPingResult {
-	var ip net.IP
-	if this.IP != nil {
-		ip = make(net.IP, len(this.IP))
-		copy(ip, this.IP)
-	} else {
+	ip := cloneIP(this.IP)
+	if ip == nil {
 		var err error
 		ip, err = LookupFunc(this.Host)
 		if err != nil {
