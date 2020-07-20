@@ -24,3 +24,15 @@ func TestTcp(t *testing.T) {
 		t.Fatal(result.Error())
 	}
 }
+
+func BenchmarkIcmp(b *testing.B) {
+	p := ping.NewIcmpPing("127.0.0.1", time.Second*1)
+	p.Privileged = true
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		r := p.Ping()
+		if r.Error() != nil {
+			b.Fatal(r.Error())
+		}
+	}
+}

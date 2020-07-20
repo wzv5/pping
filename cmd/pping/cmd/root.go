@@ -29,7 +29,7 @@ var globalflag globalFlags
 
 func init() {
 	rootCmd = &cobra.Command{Use: filepath.Base(os.Args[0])}
-	rootCmd.Version = "2020.07.09"
+	rootCmd.Version = "2020.07.20"
 	rootCmd.PersistentFlags().BoolVarP(&globalflag.t, "infinite", "t", false, "ping the specified target until stopped")
 	rootCmd.PersistentFlags().IntVarP(&globalflag.n, "count", "c", 4, "number of requests to send")
 	rootCmd.PersistentFlags().DurationVarP(&globalflag.i, "interval", "i", time.Second*1, "delay between each request")
@@ -49,6 +49,7 @@ func init() {
 	addTcpCommand()
 	addTlsCommand()
 	addHttpCommand()
+	addIcmpCommand()
 }
 
 func Execute() error {
