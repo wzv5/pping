@@ -36,3 +36,19 @@ func BenchmarkIcmp(b *testing.B) {
 		}
 	}
 }
+
+func TestIcmp(t *testing.T) {
+	p := ping.NewIcmpPing("127.0.0.1", time.Second*1)
+	result := p.Ping()
+	if result.Error() != nil {
+		t.Fatal(result.Error())
+	}
+}
+
+func TestIcmp6(t *testing.T) {
+	p := ping.NewIcmpPing("::1", time.Second*1)
+	result := p.Ping()
+	if result.Error() != nil {
+		t.Fatal(result.Error())
+	}
+}
