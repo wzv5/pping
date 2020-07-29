@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"math"
 	"math/rand"
 	"net"
 	"os"
@@ -104,10 +103,11 @@ func (this *IcmpPing) rawping(network string) IPingResult {
 
 	// 发送
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	tracker := r.Int63n(math.MaxInt64)
+	sendData := make([]byte, 32)
+	r.Read(sendData)
 	id := os.Getpid() & 0xffff
-	msg := this.getmsg(isipv6, tracker, id, 0, 64)
-	msgBytes, err := msg.Marshal(nil)
+	sendMsg := this.getmsg(isipv6, id, 0, sendData)
+	sendMsgBytes, err := sendMsg.Marshal(nil)
 	if err != nil {
 		return this.errorResult(err)
 	}
@@ -115,8 +115,9 @@ func (this *IcmpPing) rawping(network string) IPingResult {
 	if network == "udp" {
 		dst = &net.UDPAddr{IP: ip}
 	}
+	sendAt := time.Now()
 	for {
-		if _, err := conn.WriteTo(msgBytes, dst); err != nil {
+		if _, err := conn.WriteTo(sendMsgBytes, dst); err != nil {
 			if neterr, ok := err.(*net.OpError); ok {
 				if neterr.Err == syscall.ENOBUFS {
 					continue
@@ -157,37 +158,33 @@ func (this *IcmpPing) rawping(network string) IPingResult {
 		if err != nil {
 			return this.errorResult(err)
 		}
-		if recvMsg.Type != ipv4.ICMPTypeEchoReply && recvMsg.Type != ipv6.ICMPTypeEchoReply {
-			// 不是 echo 回复，忽略并继续接收
-			//fmt.Println("不是 echo 回复")
+		recvData, recvID, recvType := this.parserecvmsg(isipv6, recvMsg)
+		// 修正数据长度
+		if len(recvData) > len(sendData) {
+			recvData = recvData[len(recvData)-len(sendData):]
+		}
+		// 收到的数据和发送的数据不一致，继续接收
+		if !bytes.Equal(recvData, sendData) {
 			continue
 		}
-		if echomsg, ok := recvMsg.Body.(*icmp.Echo); ok {
-			// 收到 echo 回复
-			if network == "ip" {
-				// 如果 ID 不匹配则继续接收
-				if echomsg.ID != id {
-					//fmt.Println("ID 不匹配")
-					continue
-				}
-			}
-			if len(echomsg.Data) < 8+8 {
-				//fmt.Println("接收数据过小")
-				continue
-			}
-			recvTracker := bytesToInt(echomsg.Data[8:])
-			timestamp := bytesToTime(echomsg.Data[:8])
-			if recvTracker != tracker {
-				//fmt.Println("tracker 不匹配")
-				continue
-			}
+		// 是 echo 回复，但 ID 不一致，继续接收
+		if recvType == 1 && network == "ip" && recvID != id {
+			continue
+		}
+		switch recvType {
+		case 1:
+			// echo
 			return &IcmpPingResult{
 				TTL:  ttl,
-				Time: int(recvAt.Sub(timestamp).Milliseconds()),
+				Time: int(recvAt.Sub(sendAt).Milliseconds()),
 				IP:   ip,
 			}
-		} else {
-			return this.errorResult(errors.New("invalid ICMP echo reply"))
+		case 2:
+			// destination unreachable
+			return this.errorResult(errors.New("destination unreachable"))
+		case 3:
+			// time exceeded
+			return this.errorResult(errors.New("time exceeded"))
 		}
 	}
 }
@@ -232,19 +229,15 @@ func (this *IcmpPing) getconn(network string, ip net.IP, isipv6 bool) (*icmp.Pac
 	return conn, nil
 }
 
-func (this *IcmpPing) getmsg(isipv6 bool, tracker int64, id, seq, msgsize int) *icmp.Message {
+func (this *IcmpPing) getmsg(isipv6 bool, id, seq int, data []byte) *icmp.Message {
 	var msgtype icmp.Type = ipv4.ICMPTypeEcho
 	if isipv6 {
 		msgtype = ipv6.ICMPTypeEchoRequest
 	}
-	t := append(timeToBytes(time.Now()), intToBytes(tracker)...)
-	if remainsize := msgsize - 8 - 8; remainsize > 0 {
-		t = append(t, bytes.Repeat([]byte{1}, remainsize)...)
-	}
 	body := &icmp.Echo{
 		ID:   id,
 		Seq:  seq,
-		Data: t,
+		Data: data,
 	}
 	msg := &icmp.Message{
 		Type: msgtype,
@@ -252,6 +245,47 @@ func (this *IcmpPing) getmsg(isipv6 bool, tracker int64, id, seq, msgsize int) *
 		Body: body,
 	}
 	return msg
+}
+
+func (this *IcmpPing) parserecvmsg(isipv6 bool, msg *icmp.Message) (data []byte, id, msgtype int) {
+	id = 0
+	data = nil
+	msgtype = 0
+	if isipv6 {
+		switch msg.Type {
+		case ipv6.ICMPTypeEchoReply:
+			msgtype = 1
+		case ipv6.ICMPTypeDestinationUnreachable:
+			msgtype = 2
+		case ipv6.ICMPTypeTimeExceeded:
+			msgtype = 3
+		}
+	} else {
+		switch msg.Type {
+		case ipv4.ICMPTypeEchoReply:
+			msgtype = 1
+		case ipv4.ICMPTypeDestinationUnreachable:
+			msgtype = 2
+		case ipv4.ICMPTypeTimeExceeded:
+			msgtype = 3
+		}
+	}
+	switch msgtype {
+	case 1:
+		if tempmsg, ok := msg.Body.(*icmp.Echo); ok {
+			data = tempmsg.Data
+			id = tempmsg.ID
+		}
+	case 2:
+		if tempmsg, ok := msg.Body.(*icmp.DstUnreach); ok {
+			data = tempmsg.Data
+		}
+	case 3:
+		if tempmsg, ok := msg.Body.(*icmp.TimeExceeded); ok {
+			data = tempmsg.Data
+		}
+	}
+	return
 }
 
 func (this *IcmpPing) errorResult(err error) IPingResult {
