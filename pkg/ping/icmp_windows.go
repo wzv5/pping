@@ -61,15 +61,15 @@ func (this *IcmpPing) ping_rootless(ctx context.Context) IPingResult {
 	if err != nil {
 		return this.errorResult(err)
 	}
-	var handle uintptr = 0xffffffff
+	handle := syscall.InvalidHandle
 	defer func() {
-		if handle != 0xffffffff {
+		if handle != syscall.InvalidHandle {
 			IcmpCloseHandle(handle)
 		}
 	}()
 	if isipv6 {
 		handle = Icmp6CreateFile()
-		if handle == 0xffffffff {
+		if handle == syscall.InvalidHandle {
 			return this.errorResult(errors.New("IcmpCreateFile failed"))
 		}
 		data := make([]byte, 32)
@@ -88,7 +88,7 @@ func (this *IcmpPing) ping_rootless(ctx context.Context) IPingResult {
 		}
 	} else {
 		handle = IcmpCreateFile()
-		if handle == 0xffffffff {
+		if handle == syscall.InvalidHandle {
 			return this.errorResult(errors.New("IcmpCreateFile failed"))
 		}
 		data := make([]byte, 32)
@@ -112,20 +112,20 @@ func ipv4ToInt(ip net.IP) uint32 {
 	return binary.LittleEndian.Uint32(ip.To4())
 }
 
-func IcmpCreateFile() uintptr {
+func IcmpCreateFile() syscall.Handle {
 	h, _, _ := icmpCreateFile.Call()
-	return h
+	return syscall.Handle(h)
 }
 
-func IcmpCloseHandle(h uintptr) uintptr {
-	ret, _, _ := icmpCloseHandle.Call(h)
+func IcmpCloseHandle(h syscall.Handle) uintptr {
+	ret, _, _ := icmpCloseHandle.Call(uintptr(h))
 	return ret
 }
 
-func IcmpSendEcho(handle uintptr, ip net.IP, data []byte, timeout time.Duration) []byte {
+func IcmpSendEcho(handle syscall.Handle, ip net.IP, data []byte, timeout time.Duration) []byte {
 	buf := make([]byte, 1500)
 	n, _, _ := icmpSendEcho2.Call(
-		handle,                            // icmphandle
+		uintptr(handle),                   // icmphandle
 		0,                                 // event
 		0,                                 // apcroutine
 		0,                                 // apccontext
@@ -143,12 +143,12 @@ func IcmpSendEcho(handle uintptr, ip net.IP, data []byte, timeout time.Duration)
 	return buf[:n]
 }
 
-func Icmp6CreateFile() uintptr {
+func Icmp6CreateFile() syscall.Handle {
 	h, _, _ := icmp6CreateFile.Call()
-	return h
+	return syscall.Handle(h)
 }
 
-func Icmp6SendEcho(handle uintptr, ip net.IP, data []byte, timeout time.Duration) []byte {
+func Icmp6SendEcho(handle syscall.Handle, ip net.IP, data []byte, timeout time.Duration) []byte {
 	ip6source := syscall.RawSockaddrInet6{
 		Family: syscall.AF_INET6,
 	}
@@ -158,7 +158,7 @@ func Icmp6SendEcho(handle uintptr, ip net.IP, data []byte, timeout time.Duration
 	copy(ip6dest.Addr[:], ip)
 	buf := make([]byte, 1500)
 	n, _, _ := icmp6SendEcho2.Call(
-		handle,                              // icmphandle
+		uintptr(handle),                     // icmphandle
 		0,                                   // event
 		0,                                   // apcroutine
 		0,                                   // apccontext
