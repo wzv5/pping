@@ -79,7 +79,7 @@ func (this *IcmpPing) ping_rootless(ctx context.Context) IPingResult {
 		}
 		recvmsg := (*icmpv6_echo_reply)(unsafe.Pointer(&recv[0]))
 		if recvmsg.status != 0 {
-			return this.errorResult(errors.New(fmt.Sprintf("failed with error %d", recvmsg.status)))
+			return this.errorResult(errors.New(icmpStatusToString(recvmsg.status)))
 		}
 		return &IcmpPingResult{
 			Time: int(recvmsg.roundtriptime),
@@ -98,7 +98,7 @@ func (this *IcmpPing) ping_rootless(ctx context.Context) IPingResult {
 		}
 		recvmsg := (*icmp_echo_reply)(unsafe.Pointer(&recv[0]))
 		if recvmsg.status != 0 {
-			return this.errorResult(errors.New(fmt.Sprintf("failed with error %d", recvmsg.status)))
+			return this.errorResult(errors.New(icmpStatusToString(recvmsg.status)))
 		}
 		return &IcmpPingResult{
 			Time: int(recvmsg.roundtriptime),
@@ -175,4 +175,16 @@ func Icmp6SendEcho(handle syscall.Handle, ip net.IP, data []byte, timeout time.D
 		return nil
 	}
 	return buf[:n]
+}
+
+func icmpStatusToString(status uint32) string {
+	switch status {
+	case 11002:
+		return "destination network was unreachable"
+	case 11003:
+		return "destination host was unreachable"
+	case 11010:
+		return "request timed out"
+	}
+	return fmt.Sprintf("unknown error (%d)", status)
 }
