@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -9,12 +10,14 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/wzv5/pping/pkg/ping"
-
 	"github.com/spf13/cobra"
+	"github.com/wzv5/pping/pkg/ping"
 )
 
 var rootCmd *cobra.Command
+
+var Version string
+var PingError error = errors.New("ping error")
 
 type globalFlags struct {
 	v    bool
@@ -28,8 +31,11 @@ type globalFlags struct {
 var globalflag globalFlags
 
 func init() {
-	rootCmd = &cobra.Command{Use: filepath.Base(os.Args[0])}
-	rootCmd.Version = "2020.07.20"
+	rootCmd = &cobra.Command{
+		Use:           filepath.Base(os.Args[0]),
+		SilenceErrors: true,
+		SilenceUsage:  true,
+	}
 	rootCmd.PersistentFlags().BoolVarP(&globalflag.t, "infinite", "t", false, "ping the specified target until stopped")
 	rootCmd.PersistentFlags().IntVarP(&globalflag.n, "count", "c", 4, "number of requests to send")
 	rootCmd.PersistentFlags().DurationVarP(&globalflag.i, "interval", "i", time.Second*1, "delay between each request")
@@ -53,7 +59,12 @@ func init() {
 }
 
 func Execute() error {
-	return rootCmd.Execute()
+	rootCmd.Version = Version
+	err := rootCmd.Execute()
+	if err != nil && err != PingError {
+		rootCmd.PrintErrf("Error: %v\n", err)
+	}
+	return err
 }
 
 func PingToChan(ctx context.Context, p ping.IPing) <-chan ping.IPingResult {
@@ -64,7 +75,7 @@ func PingToChan(ctx context.Context, p ping.IPing) <-chan ping.IPingResult {
 	return c
 }
 
-func RunPing(p ping.IPing) {
+func RunPing(p ping.IPing) error {
 	// 预热，由于某些资源需要初始化，首次运行会耗时较长
 	p.Ping()
 
@@ -104,6 +115,10 @@ func RunPing(p ping.IPing) {
 end:
 	cancel()
 	s.print()
+	if s.sent == 0 || s.failed != 0 {
+		return PingError
+	}
+	return nil
 }
 
 type statistics struct {

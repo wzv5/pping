@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"time"
@@ -27,7 +28,7 @@ func addTlsCommand() {
 		Short: "tls ping",
 		Long:  "tls ping",
 		Args:  cobra.RangeArgs(1, 2),
-		Run:   runtls,
+		RunE:  runtls,
 	}
 
 	cmd.Flags().Uint16VarP(&tlsflag.tlsver, "tlsversion", "s", 0, "TLS version, one of 13, 12, 11, 10")
@@ -39,14 +40,13 @@ func addTlsCommand() {
 	rootCmd.AddCommand(cmd)
 }
 
-func runtls(cmd *cobra.Command, args []string) {
+func runtls(cmd *cobra.Command, args []string) error {
 	host := args[0]
 	var ip net.IP
 	if len(args) == 2 {
 		ip = net.ParseIP(args[1])
 		if ip == nil {
-			fmt.Println("parse IP failed")
-			return
+			return errors.New("parse IP failed")
 		}
 	}
 
@@ -61,11 +61,10 @@ func runtls(cmd *cobra.Command, args []string) {
 	case 10:
 		tlsflag.tlsver = tls.VersionTLS10
 	default:
-		fmt.Println("unknown TLS version")
-		return
+		return errors.New("unknown TLS version")
 	}
 	fmt.Printf("Ping %s (%d):\n", host, tlsflag.port)
 	p := ping.NewTlsPing(host, tlsflag.port, tlsflag.conntime, tlsflag.handtime)
 	p.IP = ip
-	RunPing(p)
+	return RunPing(p)
 }

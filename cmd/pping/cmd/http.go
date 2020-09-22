@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -29,7 +30,7 @@ func addHttpCommand() {
 		Short: "http ping",
 		Long:  "http ping",
 		Args:  cobra.RangeArgs(1, 2),
-		Run:   runhttp,
+		RunE:  runhttp,
 	}
 
 	cmd.Flags().DurationVarP(&httpflag.timeout, "timeout", "w", time.Second*3, "timeout")
@@ -42,7 +43,7 @@ func addHttpCommand() {
 	rootCmd.AddCommand(cmd)
 }
 
-func runhttp(cmd *cobra.Command, args []string) {
+func runhttp(cmd *cobra.Command, args []string) error {
 	url := args[0]
 	if !strings.HasPrefix(url, "http") {
 		url = "http://" + url
@@ -51,8 +52,7 @@ func runhttp(cmd *cobra.Command, args []string) {
 	if len(args) == 2 {
 		ip = net.ParseIP(args[1])
 		if ip == nil {
-			fmt.Println("parse IP failed")
-			return
+			return errors.New("parse IP failed")
 		}
 	}
 	fmt.Printf("Ping %s:\n", url)
@@ -63,5 +63,5 @@ func runhttp(cmd *cobra.Command, args []string) {
 	p.Referrer = httpflag.refer
 	p.UserAgent = httpflag.ua
 	p.IP = ip
-	RunPing(p)
+	return RunPing(p)
 }

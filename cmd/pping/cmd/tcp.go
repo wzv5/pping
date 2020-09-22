@@ -23,21 +23,20 @@ func addTcpCommand() {
 		Short: "tcp ping",
 		Long:  "tcp ping",
 		Args:  cobra.ExactArgs(2),
-		Run:   runtcp,
+		RunE:  runtcp,
 	}
 
 	cmd.Flags().DurationVarP(&tcpflag.timeout, "timeout", "w", time.Second*3, "timeout")
 	rootCmd.AddCommand(cmd)
 }
 
-func runtcp(cmd *cobra.Command, args []string) {
+func runtcp(cmd *cobra.Command, args []string) error {
 	host := args[0]
 	port, err := strconv.ParseUint(args[1], 10, 16)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 	fmt.Printf("Ping %s (%d):\n", host, port)
 	p := ping.NewTcpPing(host, uint16(port), tcpflag.timeout)
-	RunPing(p)
+	return RunPing(p)
 }

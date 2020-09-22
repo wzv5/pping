@@ -22,7 +22,7 @@ func addIcmpCommand() {
 		Short: "icmp ping",
 		Long:  "icmp ping",
 		Args:  cobra.ExactArgs(1),
-		Run:   runicmp,
+		RunE:  runicmp,
 	}
 
 	cmd.Flags().DurationVarP(&icmpflag.timeout, "timeout", "w", time.Second*3, "timeout")
@@ -30,10 +30,10 @@ func addIcmpCommand() {
 	rootCmd.AddCommand(cmd)
 }
 
-func runicmp(cmd *cobra.Command, args []string) {
+func runicmp(cmd *cobra.Command, args []string) error {
 	host := args[0]
 	fmt.Printf("Ping %s:\n", host)
 	p := ping.NewIcmpPing(host, icmpflag.timeout)
 	p.Privileged = icmpflag.privileged
-	RunPing(p)
+	return RunPing(p)
 }
