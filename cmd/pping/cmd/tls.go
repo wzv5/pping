@@ -32,7 +32,7 @@ func addTlsCommand() {
 	}
 
 	cmd.Flags().Uint16VarP(&tlsflag.tlsver, "tlsversion", "s", 0, "TLS version, one of 13, 12, 11, 10")
-	cmd.Flags().DurationVarP(&tlsflag.conntime, "connection", "w", time.Second*3, "connection timeout")
+	cmd.Flags().DurationVarP(&tlsflag.conntime, "connection", "w", time.Second*4, "connection timeout")
 	cmd.Flags().DurationVarP(&tlsflag.handtime, "handshake", "x", time.Second*10, "handshake timeout")
 	cmd.Flags().Uint16VarP(&tlsflag.port, "port", "p", 443, "port")
 	cmd.Flags().BoolVarP(&tlsflag.insecure, "insecure", "k", false, "allow insecure server connections")

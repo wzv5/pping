@@ -26,7 +26,7 @@ func addTcpCommand() {
 		RunE:  runtcp,
 	}
 
-	cmd.Flags().DurationVarP(&tcpflag.timeout, "timeout", "w", time.Second*3, "timeout")
+	cmd.Flags().DurationVarP(&tcpflag.timeout, "timeout", "w", time.Second*4, "timeout")
 	rootCmd.AddCommand(cmd)
 }
 

@@ -25,7 +25,7 @@ func addIcmpCommand() {
 		RunE:  runicmp,
 	}
 
-	cmd.Flags().DurationVarP(&icmpflag.timeout, "timeout", "w", time.Second*3, "timeout")
+	cmd.Flags().DurationVarP(&icmpflag.timeout, "timeout", "w", time.Second*4, "timeout")
 	cmd.Flags().BoolVarP(&icmpflag.privileged, "privileged", "p", false, "privileged")
 	rootCmd.AddCommand(cmd)
 }

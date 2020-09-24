@@ -33,7 +33,7 @@ func addHttpCommand() {
 		RunE:  runhttp,
 	}
 
-	cmd.Flags().DurationVarP(&httpflag.timeout, "timeout", "w", time.Second*3, "timeout")
+	cmd.Flags().DurationVarP(&httpflag.timeout, "timeout", "w", time.Second*4, "timeout")
 	cmd.Flags().StringVarP(&httpflag.method, "method", "m", "GET", "method")
 	cmd.Flags().BoolVarP(&httpflag.disablehttp2, "nohttp2", "d", false, "disable HTTP/2")
 	cmd.Flags().BoolVarP(&httpflag.disablecompression, "nocompression", "x", false, "disable compression")
