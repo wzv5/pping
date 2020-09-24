@@ -131,15 +131,16 @@ func (this *IcmpPing) rawping(network string) IPingResult {
 
 	for {
 		ttl := -1
+		var peer net.Addr
 		if isipv6 {
 			var cm *ipv6.ControlMessage
-			recvSize, cm, _, err = conn.IPv6PacketConn().ReadFrom(recvBytes)
+			recvSize, cm, peer, err = conn.IPv6PacketConn().ReadFrom(recvBytes)
 			if cm != nil {
 				ttl = cm.HopLimit
 			}
 		} else {
 			var cm *ipv4.ControlMessage
-			recvSize, cm, _, err = conn.IPv4PacketConn().ReadFrom(recvBytes)
+			recvSize, cm, peer, err = conn.IPv4PacketConn().ReadFrom(recvBytes)
 			if cm != nil {
 				ttl = cm.TTL
 			}
@@ -170,6 +171,13 @@ func (this *IcmpPing) rawping(network string) IPingResult {
 		if recvType == 1 && network == "ip" && recvID != id {
 			continue
 		}
+
+		if peer != nil {
+			if _ip := net.ParseIP(peer.String()); _ip != nil {
+				ip = _ip
+			}
+		}
+
 		switch recvType {
 		case 1:
 			// echo
@@ -180,10 +188,10 @@ func (this *IcmpPing) rawping(network string) IPingResult {
 			}
 		case 2:
 			// destination unreachable
-			return this.errorResult(errors.New("destination unreachable"))
+			return this.errorResult(errors.New(fmt.Sprintf("%s: destination unreachable", ip.String())))
 		case 3:
 			// time exceeded
-			return this.errorResult(errors.New("time exceeded"))
+			return this.errorResult(errors.New(fmt.Sprintf("%s: time exceeded", ip.String())))
 		}
 	}
 }

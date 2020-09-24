@@ -78,13 +78,14 @@ func (this *IcmpPing) ping_rootless(ctx context.Context) IPingResult {
 			return this.errorResult(errors.New("IcmpSendEcho failed"))
 		}
 		recvmsg := (*icmpv6_echo_reply)(unsafe.Pointer(&recv[0]))
+		var ip net.IP = recvmsg.address.sin6_addr[:]
 		if recvmsg.status != 0 {
-			return this.errorResult(errors.New(icmpStatusToString(recvmsg.status)))
+			return this.errorResult(errors.New(fmt.Sprintf("%s: %s", ip.String(), icmpStatusToString(recvmsg.status))))
 		}
 		return &IcmpPingResult{
 			Time: int(recvmsg.roundtriptime),
 			TTL:  -1,
-			IP:   recvmsg.address.sin6_addr[:],
+			IP:   ip,
 		}
 	} else {
 		handle = IcmpCreateFile()
@@ -97,13 +98,14 @@ func (this *IcmpPing) ping_rootless(ctx context.Context) IPingResult {
 			return this.errorResult(errors.New("IcmpSendEcho failed"))
 		}
 		recvmsg := (*icmp_echo_reply)(unsafe.Pointer(&recv[0]))
+		var ip net.IP = recvmsg.address[:]
 		if recvmsg.status != 0 {
-			return this.errorResult(errors.New(icmpStatusToString(recvmsg.status)))
+			return this.errorResult(errors.New(fmt.Sprintf("%s: %s", ip.String(), icmpStatusToString(recvmsg.status))))
 		}
 		return &IcmpPingResult{
 			Time: int(recvmsg.roundtriptime),
 			TTL:  int(recvmsg.option.ttl),
-			IP:   recvmsg.address[:],
+			IP:   ip,
 		}
 	}
 }
