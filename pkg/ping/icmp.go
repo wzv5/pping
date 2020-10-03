@@ -39,9 +39,6 @@ func (this *IcmpPingResult) String() string {
 	}
 }
 
-type icmpconn interface {
-}
-
 type IcmpPing struct {
 	host    string
 	Timeout time.Duration
