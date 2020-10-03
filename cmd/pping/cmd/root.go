@@ -76,8 +76,10 @@ func PingToChan(ctx context.Context, p ping.IPing) <-chan ping.IPingResult {
 }
 
 func RunPing(p ping.IPing) error {
-	// 预热，由于某些资源需要初始化，首次运行会耗时较长
-	p.Ping()
+	if globalflag.n > 1 {
+		// 预热，由于某些资源需要初始化，首次运行会耗时较长
+		p.Ping()
+	}
 
 	s := statistics{}
 	c := make(chan os.Signal, 1)
@@ -114,7 +116,9 @@ func RunPing(p ping.IPing) error {
 
 end:
 	cancel()
-	s.print()
+	if globalflag.n > 1 {
+		s.print()
+	}
 	if s.sent == 0 || s.failed != 0 {
 		return PingError
 	}
