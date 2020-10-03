@@ -56,6 +56,7 @@ func init() {
 	addTlsCommand()
 	addHttpCommand()
 	addIcmpCommand()
+	addDnsCommand()
 }
 
 func Execute() error {
