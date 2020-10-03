@@ -2,10 +2,12 @@ package ping
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/miekg/dns"
@@ -47,6 +49,9 @@ type DnsPing struct {
 	// 查询域名，默认 .
 	Domain string
 
+	// Net 为 tcp-tls 时，是否跳过证书验证
+	Insecure bool
+
 	ip net.IP
 }
 
@@ -78,12 +83,19 @@ func (this *DnsPing) PingContext(ctx context.Context) IPingResult {
 	if !ok {
 		return &DnsPingResult{0, errors.New("unknown type"), nil}
 	}
+	if !strings.HasSuffix(this.Domain, ".") {
+		this.Domain += "."
+	}
 	msg.SetQuestion(this.Domain, qtype)
 	msg.MsgHdr.RecursionDesired = true
 
 	client := &dns.Client{}
 	client.Net = this.Net
 	client.Timeout = this.Timeout
+	client.TLSConfig = &tls.Config{
+		ServerName:         this.host,
+		InsecureSkipVerify: this.Insecure,
+	}
 
 	t0 := time.Now()
 	r, _, err := client.ExchangeContext(ctx, msg, net.JoinHostPort(ip.String(), strconv.Itoa(int(this.Port))))
@@ -98,13 +110,14 @@ func (this *DnsPing) PingContext(ctx context.Context) IPingResult {
 
 func NewDnsPing(host string, timeout time.Duration) *DnsPing {
 	return &DnsPing{
-		host:    host,
-		Port:    53,
-		Timeout: timeout,
-		Net:     "udp",
-		Type:    "NS",
-		Domain:  ".",
-		ip:      net.ParseIP(host),
+		host:     host,
+		Port:     53,
+		Timeout:  timeout,
+		Net:      "udp",
+		Type:     "NS",
+		Domain:   ".",
+		Insecure: false,
+		ip:       net.ParseIP(host),
 	}
 }
 

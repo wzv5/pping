@@ -12,12 +12,13 @@ import (
 )
 
 type dnsFlags struct {
-	port    uint16
-	timeout time.Duration
-	tcp     bool
-	tls     bool
-	qtype   string
-	domain  string
+	port     uint16
+	timeout  time.Duration
+	tcp      bool
+	tls      bool
+	qtype    string
+	domain   string
+	insecure bool
 }
 
 var dnsflag dnsFlags
@@ -37,6 +38,7 @@ func addDnsCommand() {
 	cmd.Flags().BoolVar(&dnsflag.tls, "tls", false, "use DNS-over-TLS")
 	cmd.Flags().StringVar(&dnsflag.qtype, "type", "NS", "A, AAAA, NS, ...")
 	cmd.Flags().StringVar(&dnsflag.domain, "domain", ".", "domain")
+	cmd.Flags().BoolVarP(&dnsflag.insecure, "insecure", "k", false, "allow insecure server connections")
 
 	rootCmd.AddCommand(cmd)
 }
@@ -63,5 +65,6 @@ func rundns(cmd *cobra.Command, args []string) error {
 	p.Net = Net
 	p.Type = dnsflag.qtype
 	p.Domain = dnsflag.domain
+	p.Insecure = dnsflag.insecure
 	return RunPing(p)
 }
