@@ -1,6 +1,8 @@
 # pping
 
-tcp ping, tls ping, http ping.
+[![GoDoc](https://godoc.org/github.com/wzv5/pping?status.svg)](https://godoc.org/github.com/wzv5/pping)
+
+tcp ping, tls ping, http ping, icmp ping, dns ping.
 
 ## Install
 
@@ -21,8 +23,10 @@ Usage:
   pping [command]
 
 Available Commands:
+  dns         dns ping
   help        Help about any command
   http        http ping
+  icmp        icmp ping
   tcp         tcp ping
   tls         tls ping
 
@@ -31,6 +35,8 @@ Flags:
   -h, --help                help for pping
   -t, --infinite            ping the specified target until stopped
   -i, --interval duration   delay between each request (default 1s)
+  -4, --ipv4                use IPv4
+  -6, --ipv6                use IPv6
   -v, --version             version for pping
 
 Use "pping [command] --help" for more information about a command.
