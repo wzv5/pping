@@ -65,6 +65,8 @@ func runtls(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Printf("Ping %s (%d):\n", host, tlsflag.port)
 	p := ping.NewTlsPing(host, tlsflag.port, tlsflag.conntime, tlsflag.handtime)
+	p.TlsVersion = tlsflag.tlsver
+	p.Insecure = tlsflag.insecure
 	p.IP = ip
 	return RunPing(p)
 }
