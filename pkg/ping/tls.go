@@ -29,7 +29,7 @@ func (this *TlsPingResult) String() string {
 	if this.Err != nil {
 		return fmt.Sprintf("%s", this.Err)
 	} else {
-		return fmt.Sprintf("%s: proto=%s, connection=%d ms, handshake=%d ms, time=%d ms", this.IP.String(), tlsVersionToString(this.TLSVersion), this.ConnectionTime, this.HandshakeTime, this.Result())
+		return fmt.Sprintf("%s: protocol=%s, connection=%d ms, handshake=%d ms, time=%d ms", this.IP.String(), tlsVersionToString(this.TLSVersion), this.ConnectionTime, this.HandshakeTime, this.Result())
 	}
 }
 

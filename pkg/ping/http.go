@@ -33,7 +33,7 @@ func (this *HttpPingResult) String() string {
 	if this.Err != nil {
 		return fmt.Sprintf("%s", this.Err)
 	} else {
-		return fmt.Sprintf("%s: proto=%s, status=%d, length=%d, time=%d ms", this.IP.String(), this.Proto, this.Status, this.Length, this.Time)
+		return fmt.Sprintf("%s: protocol=%s, status=%d, length=%d, time=%d ms", this.IP.String(), this.Proto, this.Status, this.Length, this.Time)
 	}
 }
 
