@@ -1,4 +1,4 @@
-// +build windows
+//go:build windows
 
 package ping
 
@@ -80,7 +80,7 @@ func (this *IcmpPing) ping_rootless(ctx context.Context) IPingResult {
 		recvmsg := (*icmpv6_echo_reply)(unsafe.Pointer(&recv[0]))
 		var ip net.IP = recvmsg.address.sin6_addr[:]
 		if recvmsg.status != 0 {
-			return this.errorResult(errors.New(fmt.Sprintf("%s: %s", ip.String(), icmpStatusToString(recvmsg.status))))
+			return this.errorResult(fmt.Errorf("%s: %s", ip.String(), icmpStatusToString(recvmsg.status)))
 		}
 		return &IcmpPingResult{
 			Time: int(recvmsg.roundtriptime),
@@ -100,7 +100,7 @@ func (this *IcmpPing) ping_rootless(ctx context.Context) IPingResult {
 		recvmsg := (*icmp_echo_reply)(unsafe.Pointer(&recv[0]))
 		var ip net.IP = recvmsg.address[:]
 		if recvmsg.status != 0 {
-			return this.errorResult(errors.New(fmt.Sprintf("%s: %s", ip.String(), icmpStatusToString(recvmsg.status))))
+			return this.errorResult(fmt.Errorf("%s: %s", ip.String(), icmpStatusToString(recvmsg.status)))
 		}
 		return &IcmpPingResult{
 			Time: int(recvmsg.roundtriptime),

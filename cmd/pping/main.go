@@ -13,7 +13,7 @@ func main() {
 	log.SetFlags(log.Ltime)
 	cmd.Version = version
 	err := cmd.Execute()
-	if err == cmd.PingError {
+	if err == cmd.ErrPing {
 		os.Exit(1)
 	} else if err != nil {
 		os.Exit(2)

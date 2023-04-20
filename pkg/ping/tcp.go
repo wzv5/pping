@@ -70,7 +70,7 @@ func (this *TcpPing) PingContext(ctx context.Context) IPingResult {
 		return &TcpPingResult{0, err, nil}
 	}
 	defer conn.Close()
-	return &TcpPingResult{int(time.Now().Sub(t0).Milliseconds()), nil, ip}
+	return &TcpPingResult{int(time.Since(t0).Milliseconds()), nil, ip}
 }
 
 func NewTcpPing(host string, port uint16, timeout time.Duration) *TcpPing {

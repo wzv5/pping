@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -124,11 +124,11 @@ func (this *HttpPing) PingContext(ctx context.Context) IPingResult {
 		return this.errorResult(err)
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return this.errorResult(err)
 	}
-	return &HttpPingResult{int(time.Now().Sub(t0).Milliseconds()), resp.Proto, resp.StatusCode, len(body), nil, ip}
+	return &HttpPingResult{int(time.Since(t0).Milliseconds()), resp.Proto, resp.StatusCode, len(body), nil, ip}
 }
 
 func (this *HttpPing) errorResult(err error) *HttpPingResult {

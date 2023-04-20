@@ -102,10 +102,11 @@ func (this *DnsPing) PingContext(ctx context.Context) IPingResult {
 	if err != nil {
 		return &DnsPingResult{0, err, nil}
 	}
-	if r == nil || r.Response == false || r.Opcode != dns.OpcodeQuery {
+	if r == nil || !r.Response || r.Opcode != dns.OpcodeQuery {
 		return &DnsPingResult{0, errors.New("response error"), nil}
 	}
-	return &DnsPingResult{int(time.Now().Sub(t0).Milliseconds()), nil, ip}
+
+	return &DnsPingResult{int(time.Since(t0).Milliseconds()), nil, ip}
 }
 
 func NewDnsPing(host string, timeout time.Duration) *DnsPing {

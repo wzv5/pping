@@ -11,7 +11,6 @@ import (
 )
 
 type tcpFlags struct {
-	port    uint16
 	timeout time.Duration
 }
 

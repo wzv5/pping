@@ -17,10 +17,9 @@ import (
 var rootCmd *cobra.Command
 
 var Version string
-var PingError error = errors.New("ping error")
+var ErrPing error = errors.New("ping error")
 
 type globalFlags struct {
-	v    bool
 	t    bool
 	n    int
 	i    time.Duration
@@ -62,7 +61,7 @@ func init() {
 func Execute() error {
 	rootCmd.Version = Version
 	err := rootCmd.Execute()
-	if err != nil && err != PingError {
+	if err != nil && err != ErrPing {
 		rootCmd.PrintErrf("Error: %v\n", err)
 	}
 	return err
@@ -121,7 +120,7 @@ end:
 		s.print()
 	}
 	if s.sent == 0 || s.failed != 0 {
-		return PingError
+		return ErrPing
 	}
 	return nil
 }

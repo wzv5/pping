@@ -185,10 +185,10 @@ func (this *IcmpPing) rawping(network string) IPingResult {
 			}
 		case 2:
 			// destination unreachable
-			return this.errorResult(errors.New(fmt.Sprintf("%s: destination unreachable", ip.String())))
+			return this.errorResult(fmt.Errorf("%s: destination unreachable", ip.String()))
 		case 3:
 			// time exceeded
-			return this.errorResult(errors.New(fmt.Sprintf("%s: time exceeded", ip.String())))
+			return this.errorResult(fmt.Errorf("%s: time exceeded", ip.String()))
 		}
 	}
 }
