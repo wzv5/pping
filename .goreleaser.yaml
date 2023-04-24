@@ -1,20 +1,13 @@
+env:
+  - GO111MODULE=on
 before:
   hooks:
-    - go mod download
+    - go mod tidy
 builds:
   - env:
       - CGO_ENABLED=0
     dir: cmd/pping
-    goos:
-      - linux
-      - darwin
-      - windows
-    goarch:
-      - "386"
-      - amd64
-    ignore:
-      - goos: darwin
-        goarch: "386"
+  - targets: [go_first_class]
 archives:
   - name_template: >-
       {{ .ProjectName }}_

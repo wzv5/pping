@@ -1,0 +1,36 @@
+name: goreleaser
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      flags: ""
+    steps:
+      - if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: echo "flags=--snapshot" >> $GITHUB_ENV
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v4
+        with:
+          go-version: stable
+      - uses: goreleaser/goreleaser-action@v4
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean ${{ env.flags }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v3
+        with:
+          name: pping
+          path: dist/*
