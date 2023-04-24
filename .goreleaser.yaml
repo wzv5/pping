@@ -7,7 +7,7 @@ builds:
   - env:
       - CGO_ENABLED=0
     dir: cmd/pping
-  - targets: [go_first_class]
+    targets: [go_first_class]
 archives:
   - name_template: >-
       {{ .ProjectName }}_
