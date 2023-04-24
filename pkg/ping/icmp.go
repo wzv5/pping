@@ -45,6 +45,8 @@ type IcmpPing struct {
 
 	ip         net.IP
 	Privileged bool
+	TTL        int
+	Size       int
 }
 
 func (this *IcmpPing) SetHost(host string) {
@@ -59,6 +61,7 @@ func (this *IcmpPing) Host() string {
 func NewIcmpPing(host string, timeout time.Duration) *IcmpPing {
 	p := &IcmpPing{
 		Timeout: timeout,
+		Size:    32,
 	}
 	p.SetHost(host)
 	return p
@@ -96,10 +99,17 @@ func (this *IcmpPing) rawping(network string) IPingResult {
 	}
 	defer conn.Close()
 	conn.SetDeadline(time.Now().Add(this.Timeout))
+	if this.TTL > 0 {
+		if isipv6 {
+			conn.IPv6PacketConn().SetHopLimit(this.TTL)
+		} else {
+			conn.IPv4PacketConn().SetTTL(this.TTL)
+		}
+	}
 
 	// 发送
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	sendData := make([]byte, 32)
+	sendData := make([]byte, this.Size)
 	r.Read(sendData)
 	id := os.Getpid() & 0xffff
 	sendMsg := this.getmsg(isipv6, id, 0, sendData)
@@ -123,7 +133,8 @@ func (this *IcmpPing) rawping(network string) IPingResult {
 		break
 	}
 
-	recvBytes := make([]byte, 1500)
+	// 直接分配一个足够大的缓冲区
+	recvBytes := make([]byte, this.Size+128)
 	recvSize := 0
 
 	for {

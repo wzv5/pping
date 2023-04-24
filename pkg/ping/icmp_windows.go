@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math/rand"
 	"net"
 	"syscall"
 	"time"
@@ -67,13 +68,15 @@ func (this *IcmpPing) ping_rootless(ctx context.Context) IPingResult {
 			IcmpCloseHandle(handle)
 		}
 	}()
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	if isipv6 {
 		handle = Icmp6CreateFile()
 		if handle == syscall.InvalidHandle {
 			return this.errorResult(errors.New("IcmpCreateFile failed"))
 		}
-		data := make([]byte, 32)
-		recv := Icmp6SendEcho(handle, ip, data, this.Timeout)
+		data := make([]byte, this.Size)
+		r.Read(data)
+		recv := Icmp6SendEcho(handle, ip, data, this.Timeout, this.TTL)
 		if recv == nil {
 			return this.errorResult(errors.New("IcmpSendEcho failed"))
 		}
@@ -92,8 +95,9 @@ func (this *IcmpPing) ping_rootless(ctx context.Context) IPingResult {
 		if handle == syscall.InvalidHandle {
 			return this.errorResult(errors.New("IcmpCreateFile failed"))
 		}
-		data := make([]byte, 32)
-		recv := IcmpSendEcho(handle, ip, data, this.Timeout)
+		data := make([]byte, this.Size)
+		r.Read(data)
+		recv := IcmpSendEcho(handle, ip, data, this.Timeout, this.TTL)
 		if recv == nil {
 			return this.errorResult(errors.New("IcmpSendEcho failed"))
 		}
@@ -124,8 +128,14 @@ func IcmpCloseHandle(h syscall.Handle) uintptr {
 	return ret
 }
 
-func IcmpSendEcho(handle syscall.Handle, ip net.IP, data []byte, timeout time.Duration) []byte {
-	buf := make([]byte, 1500)
+func IcmpSendEcho(handle syscall.Handle, ip net.IP, data []byte, timeout time.Duration, ttl int) []byte {
+	buf := make([]byte, (int)(unsafe.Sizeof(icmp_echo_reply{}))+len(data))
+	var pOptions *ip_option_information
+	if ttl > 0 {
+		pOptions = &ip_option_information{
+			ttl: uint8(ttl),
+		}
+	}
 	n, _, _ := icmpSendEcho2.Call(
 		uintptr(handle),                   // icmphandle
 		0,                                 // event
@@ -134,7 +144,7 @@ func IcmpSendEcho(handle syscall.Handle, ip net.IP, data []byte, timeout time.Du
 		uintptr(ipv4ToInt(ip)),            // destinationaddress
 		uintptr(unsafe.Pointer(&data[0])), // requestdata
 		uintptr(len(data)),                // requestsize
-		0,                                 // requestoptions
+		uintptr(unsafe.Pointer(pOptions)), // requestoptions
 		uintptr(unsafe.Pointer(&buf[0])),  // replaybuffer
 		uintptr(len(buf)),                 // replysize
 		uintptr(timeout.Milliseconds()),   // timeout
@@ -150,7 +160,7 @@ func Icmp6CreateFile() syscall.Handle {
 	return syscall.Handle(h)
 }
 
-func Icmp6SendEcho(handle syscall.Handle, ip net.IP, data []byte, timeout time.Duration) []byte {
+func Icmp6SendEcho(handle syscall.Handle, ip net.IP, data []byte, timeout time.Duration, ttl int) []byte {
 	ip6source := syscall.RawSockaddrInet6{
 		Family: syscall.AF_INET6,
 	}
@@ -158,7 +168,13 @@ func Icmp6SendEcho(handle syscall.Handle, ip net.IP, data []byte, timeout time.D
 		Family: syscall.AF_INET6,
 	}
 	copy(ip6dest.Addr[:], ip)
-	buf := make([]byte, 1500)
+	buf := make([]byte, (int)(unsafe.Sizeof(icmpv6_echo_reply{}))+len(data))
+	var pOptions *ip_option_information
+	if ttl > 0 {
+		pOptions = &ip_option_information{
+			ttl: uint8(ttl),
+		}
+	}
 	n, _, _ := icmp6SendEcho2.Call(
 		uintptr(handle),                     // icmphandle
 		0,                                   // event
@@ -168,7 +184,7 @@ func Icmp6SendEcho(handle syscall.Handle, ip net.IP, data []byte, timeout time.D
 		uintptr(unsafe.Pointer(&ip6dest)),   // destinationaddress
 		uintptr(unsafe.Pointer(&data[0])),   // requestdata
 		uintptr(len(data)),                  // requestsize
-		0,                                   // requestoptions
+		uintptr(unsafe.Pointer(pOptions)),   // requestoptions
 		uintptr(unsafe.Pointer(&buf[0])),    // replaybuffer
 		uintptr(len(buf)),                   // replysize
 		uintptr(timeout.Milliseconds()),     // timeout
@@ -187,6 +203,8 @@ func icmpStatusToString(status uint32) string {
 		return "destination host was unreachable"
 	case 11010:
 		return "request timed out"
+	case 11013:
+		return "time exceeded"
 	}
 	return fmt.Sprintf("unknown error (%d)", status)
 }
