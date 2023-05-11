@@ -99,13 +99,6 @@ func (this *IcmpPing) rawping(network string) IPingResult {
 	}
 	defer conn.Close()
 	conn.SetDeadline(time.Now().Add(this.Timeout))
-	if this.TTL > 0 {
-		if isipv6 {
-			conn.IPv6PacketConn().SetHopLimit(this.TTL)
-		} else {
-			conn.IPv4PacketConn().SetTTL(this.TTL)
-		}
-	}
 
 	// 发送
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -167,16 +160,16 @@ func (this *IcmpPing) rawping(network string) IPingResult {
 			return this.errorResult(err)
 		}
 		recvData, recvID, recvType := this.parserecvmsg(isipv6, recvMsg)
-		// 修正数据长度
+		// 是 echo 回复，但 ID 不一致，继续接收
+		if recvType == 1 && network == "ip" && recvID != id {
+			continue
+		}
+		// 无脑修正数据长度，开头数据其实为 IP 包头
 		if len(recvData) > len(sendData) {
 			recvData = recvData[len(recvData)-len(sendData):]
 		}
 		// 收到的数据和发送的数据不一致，继续接收
 		if !bytes.Equal(recvData, sendData) {
-			continue
-		}
-		// 是 echo 回复，但 ID 不一致，继续接收
-		if recvType == 1 && network == "ip" && recvID != id {
 			continue
 		}
 
@@ -240,6 +233,13 @@ func (this *IcmpPing) getconn(network string, ip net.IP, isipv6 bool) (*icmp.Pac
 		conn.IPv6PacketConn().SetControlMessage(ipv6.FlagHopLimit, true)
 	} else {
 		conn.IPv4PacketConn().SetControlMessage(ipv4.FlagTTL, true)
+	}
+	if this.TTL > 0 {
+		if isipv6 {
+			conn.IPv6PacketConn().SetHopLimit(this.TTL)
+		} else {
+			conn.IPv4PacketConn().SetTTL(this.TTL)
+		}
 	}
 	return conn, nil
 }

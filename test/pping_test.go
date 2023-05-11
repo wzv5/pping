@@ -91,3 +91,11 @@ func TestIcmp_size_root(t *testing.T) {
 		t.Fatal(result.Error())
 	}
 }
+
+func TestQuic(t *testing.T) {
+	p := ping.NewQuicPing("quic.nginx.org", 443, time.Second*5)
+	result := p.Ping()
+	if result.Error() != nil {
+		t.Fatal(result.Error())
+	}
+}
