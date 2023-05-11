@@ -2,7 +2,7 @@
 
 [![GoDoc](https://godoc.org/github.com/wzv5/pping?status.svg)](https://godoc.org/github.com/wzv5/pping)
 
-tcp ping, tls ping, http ping, icmp ping, dns ping.
+tcp ping, tls ping, http ping, icmp ping, dns ping, quic ping.
 
 ## Install
 
@@ -23,10 +23,12 @@ Usage:
   pping [command]
 
 Available Commands:
+  completion  Generate the autocompletion script for the specified shell
   dns         dns ping
   help        Help about any command
   http        http ping
   icmp        icmp ping
+  quic        quic ping
   tcp         tcp ping
   tls         tls ping
 
