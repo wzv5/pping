@@ -20,6 +20,7 @@ type httpFlags struct {
 	timeout            time.Duration
 	refer              string
 	ua                 string
+	http3              bool
 }
 
 var httpflag httpFlags
@@ -40,6 +41,7 @@ func addHttpCommand() {
 	cmd.Flags().BoolVarP(&httpflag.insecure, "insecure", "k", false, "allow insecure server connections when using SSL")
 	cmd.Flags().StringVarP(&httpflag.refer, "referrer", "r", "", "Referer header")
 	cmd.Flags().StringVarP(&httpflag.ua, "useragent", "u", "", "User-Agent header")
+	cmd.Flags().BoolVarP(&httpflag.http3, "http3", "3", false, "use HTTP/3")
 	rootCmd.AddCommand(cmd)
 }
 
@@ -63,5 +65,6 @@ func runhttp(cmd *cobra.Command, args []string) error {
 	p.Referrer = httpflag.refer
 	p.UserAgent = httpflag.ua
 	p.IP = ip
+	p.Http3 = httpflag.http3
 	return RunPing(p)
 }

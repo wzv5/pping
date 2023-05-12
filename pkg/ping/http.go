@@ -8,8 +8,10 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
+
+	"github.com/quic-go/quic-go"
+	"github.com/quic-go/quic-go/http3"
 )
 
 type HttpPingResult struct {
@@ -48,6 +50,7 @@ type HttpPing struct {
 	Insecure           bool
 	Referrer           string
 	UserAgent          string
+	Http3              bool
 	IP                 net.IP
 }
 
@@ -60,7 +63,9 @@ func (this *HttpPing) PingContext(ctx context.Context) IPingResult {
 	if err != nil {
 		return this.errorResult(err)
 	}
+	orighost := u.Host
 	host := u.Hostname()
+	port := u.Port()
 	ip := cloneIP(this.IP)
 	if ip == nil {
 		var err error
@@ -69,51 +74,53 @@ func (this *HttpPing) PingContext(ctx context.Context) IPingResult {
 			return this.errorResult(err)
 		}
 	}
-
-	dialer := &net.Dialer{
-		Timeout:   this.Timeout,
-		KeepAlive: -1,
+	if port != "" {
+		u.Host = net.JoinHostPort(ip.String(), port)
+	} else {
+		u.Host = ip.String()
 	}
+	url2 := u.String()
 
-	dialfunc := func(ctx context.Context, network, address string) (net.Conn, error) {
-		h, p, err := net.SplitHostPort(address)
-		if err != nil {
-			return nil, err
+	var transport http.RoundTripper
+	if this.Http3 {
+		transport = &http3.RoundTripper{
+			DisableCompression: this.DisableCompression,
+			QuicConfig: &quic.Config{
+				KeepAlivePeriod: 0,
+			},
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: this.Insecure,
+				ServerName:         host,
+			},
 		}
-		if ip == nil || !strings.EqualFold(h, host) {
-			var err error
-			ip, err = LookupFunc(h)
-			if err != nil {
-				return nil, err
-			}
+	} else {
+		trans := http.DefaultTransport.(*http.Transport).Clone()
+		trans.DisableKeepAlives = true
+		trans.MaxIdleConnsPerHost = -1
+		trans.DisableCompression = this.DisableCompression
+		trans.ForceAttemptHTTP2 = !this.DisableHttp2
+		trans.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: this.Insecure,
+			ServerName:         host,
 		}
-		addr := net.JoinHostPort(ip.String(), p)
-		return dialer.DialContext(ctx, network, addr)
+		transport = trans
 	}
 
-	trans := http.DefaultTransport.(*http.Transport).Clone()
-	trans.DialContext = dialfunc
-	trans.DisableKeepAlives = true
-	trans.MaxIdleConnsPerHost = -1
-	trans.DisableCompression = this.DisableCompression
-	trans.ForceAttemptHTTP2 = !this.DisableHttp2
-	trans.TLSClientConfig = &tls.Config{
-		InsecureSkipVerify: this.Insecure,
-	}
-
-	req, err := http.NewRequestWithContext(ctx, this.Method, this.URL, nil)
+	req, err := http.NewRequestWithContext(ctx, this.Method, url2, nil)
 	if err != nil {
 		return this.errorResult(err)
 	}
-	if this.UserAgent == "" {
-		this.UserAgent = "httping"
+	ua := "httping"
+	if this.UserAgent != "" {
+		ua = this.UserAgent
 	}
-	req.Header.Set("User-Agent", this.UserAgent)
+	req.Header.Set("User-Agent", ua)
 	if this.Referrer != "" {
 		req.Header.Set("Referer", this.Referrer)
 	}
+	req.Host = orighost
 	client := &http.Client{}
-	client.Transport = trans
+	client.Transport = transport
 	client.Timeout = this.Timeout
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse

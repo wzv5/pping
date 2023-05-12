@@ -1,6 +1,6 @@
 # pping
 
-[![GoDoc](https://godoc.org/github.com/wzv5/pping?status.svg)](https://godoc.org/github.com/wzv5/pping)
+[![Go Reference](https://pkg.go.dev/badge/github.com/wzv5/pping.svg)](https://pkg.go.dev/github.com/wzv5/pping)
 
 tcp ping, tls ping, http ping, icmp ping, dns ping, quic ping.
 
