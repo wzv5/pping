@@ -74,10 +74,14 @@ func (this *HttpPing) PingContext(ctx context.Context) IPingResult {
 			return this.errorResult(err)
 		}
 	}
+	ipstr := ip.String()
+	if isIPv6(ip) {
+		ipstr = fmt.Sprintf("[%s]", ipstr)
+	}
 	if port != "" {
-		u.Host = net.JoinHostPort(ip.String(), port)
+		u.Host = fmt.Sprintf("%s:%s", ipstr, port)
 	} else {
-		u.Host = ip.String()
+		u.Host = ipstr
 	}
 	url2 := u.String()
 

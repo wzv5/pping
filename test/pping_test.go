@@ -99,3 +99,12 @@ func TestQuic(t *testing.T) {
 		t.Fatal(result.Error())
 	}
 }
+
+func TestHttpIPv6(t *testing.T) {
+	p := ping.NewHttpPing("GET", "https://www.qq.com/", time.Second*5)
+	p.IP, _ = ping.LookupIPv6("www.qq.com")
+	result := p.Ping()
+	if result.Error() != nil {
+		t.Fatal(result.Error())
+	}
+}
