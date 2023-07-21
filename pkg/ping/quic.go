@@ -74,7 +74,7 @@ func (this *QuicPing) PingContext(ctx context.Context) IPingResult {
 		HandshakeIdleTimeout: this.Timeout,
 	}
 	t0 := time.Now()
-	conn, err := quic.DialAddrContext(ctx, addr, &tlsconf, &quicconf)
+	conn, err := quic.DialAddr(ctx, addr, &tlsconf, &quicconf)
 	if err != nil {
 		return this.errorResult(err)
 	}
