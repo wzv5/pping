@@ -39,10 +39,12 @@ type icmp_echo_reply struct {
 }
 
 type ipv6_address_ex struct {
-	sin6_port     uint16
-	sin6_flowinfo uint32
-	sin6_addr     [16]byte
-	sin6_scope_id uint32
+	// go 语言不支持手动指定内存对齐方式，sin6_flowinfo 字段错位
+	data [26]byte
+	// sin6_port     uint16
+	// sin6_flowinfo uint32
+	// sin6_addr     [16]byte
+	// sin6_scope_id uint32
 }
 
 var (
@@ -81,7 +83,7 @@ func (this *IcmpPing) ping_rootless(ctx context.Context) IPingResult {
 			return this.errorResult(errors.New("IcmpSendEcho failed"))
 		}
 		recvmsg := (*icmpv6_echo_reply)(unsafe.Pointer(&recv[0]))
-		var ip net.IP = recvmsg.address.sin6_addr[:]
+		var ip net.IP = recvmsg.address.data[6:22]
 		if recvmsg.status != 0 {
 			return this.errorResult(fmt.Errorf("%s: %s", ip.String(), icmpStatusToString(recvmsg.status)))
 		}
@@ -152,7 +154,7 @@ func IcmpSendEcho(handle syscall.Handle, ip net.IP, data []byte, timeout time.Du
 	if n == 0 {
 		return nil
 	}
-	return buf[:n]
+	return buf
 }
 
 func Icmp6CreateFile() syscall.Handle {
@@ -192,7 +194,7 @@ func Icmp6SendEcho(handle syscall.Handle, ip net.IP, data []byte, timeout time.D
 	if n == 0 {
 		return nil
 	}
-	return buf[:n]
+	return buf
 }
 
 func icmpStatusToString(status uint32) string {
