@@ -93,7 +93,7 @@ func (this *IcmpPing) rawping(network string) IPingResult {
 	}
 
 	// 创建连接
-	conn, err := this.getconn(network, ip, isipv6)
+	conn, err := this.getconn(network, isipv6)
 	if err != nil {
 		return this.errorResult(err)
 	}
@@ -216,7 +216,7 @@ func (this *IcmpPing) parseip() (ip net.IP, ipv6 bool, err error) {
 	return
 }
 
-func (this *IcmpPing) getconn(network string, ip net.IP, isipv6 bool) (*icmp.PacketConn, error) {
+func (this *IcmpPing) getconn(network string, isipv6 bool) (*icmp.PacketConn, error) {
 	ipv4Proto := map[string]string{"ip": "ip4:icmp", "udp": "udp4"}
 	ipv6Proto := map[string]string{"ip": "ip6:ipv6-icmp", "udp": "udp6"}
 	icmpnetwork := ""
