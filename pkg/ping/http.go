@@ -87,9 +87,9 @@ func (this *HttpPing) PingContext(ctx context.Context) IPingResult {
 
 	var transport http.RoundTripper
 	if this.Http3 {
-		transport = &http3.RoundTripper{
+		trans := &http3.Transport{
 			DisableCompression: this.DisableCompression,
-			QuicConfig: &quic.Config{
+			QUICConfig: &quic.Config{
 				KeepAlivePeriod: 0,
 			},
 			TLSClientConfig: &tls.Config{
@@ -97,6 +97,8 @@ func (this *HttpPing) PingContext(ctx context.Context) IPingResult {
 				ServerName:         host,
 			},
 		}
+		defer trans.Close()
+		transport = trans
 	} else {
 		trans := http.DefaultTransport.(*http.Transport).Clone()
 		trans.DisableKeepAlives = true

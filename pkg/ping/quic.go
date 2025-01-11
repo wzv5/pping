@@ -31,7 +31,7 @@ func (this *QuicPingResult) String() string {
 	if this.Err != nil {
 		return fmt.Sprintf("%s", this.Err)
 	} else {
-		return fmt.Sprintf("%s: quic=%s, tls=%s, time=%d ms", this.IP.String(), quic.VersionNumber(this.QUICVersion).String(), tlsVersionToString(this.TLSVersion), this.Time)
+		return fmt.Sprintf("%s: quic=%s, tls=%s, time=%d ms", this.IP.String(), quic.Version(this.QUICVersion).String(), tlsVersionToString(this.TLSVersion), this.Time)
 	}
 }
 
